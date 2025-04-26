@@ -40,15 +40,20 @@ async def websocket_endpoint(websocket: WebSocket):
             data = await websocket.receive_bytes()
             buffer.extend(data)
 
-            while len(buffer) >= CHUNK_SIZE:
-                pcm_chunk = buffer[:CHUNK_SIZE]
-                buffer = buffer[CHUNK_SIZE:]
+            print("Recieved data...")
+
+            
+            if len(buffer) % CHUNK_SIZE == 0:
+                pcm_chunk = buffer[:CHUNK_SIZE-100] if len(buffer) - CHUNK_SIZE > 100 else buffer[:CHUNK_SIZE]
+                buffer = bytearray()
 
                 # Convert bytes to float32 tensor
                 audio_np = np.frombuffer(pcm_chunk, dtype=np.int16).astype(np.float32) / 32768.0
                 waveform = torch.from_numpy(audio_np).unsqueeze(0)
 
                 waveform = resampler(waveform)
+
+                # remove noise here
 
                 # Transcribe the audio
                 result = asr_pipeline(waveform.squeeze(0).numpy(), chunk_length_s=1)
